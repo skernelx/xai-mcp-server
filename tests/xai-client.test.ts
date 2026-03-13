@@ -345,6 +345,34 @@ describe("XAIClient", () => {
       expect(callBody.messages).toHaveLength(2);
       expect(callBody.messages[0].role).toBe("system");
     });
+
+    it("should parse streamed chat completion responses", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: {
+          get: (name: string) =>
+            name.toLowerCase() === "content-type" ? "text/event-stream" : null,
+        },
+        text: () =>
+          Promise.resolve(
+            'data: {"id":"chatcmpl-stream","object":"chat.completion.chunk","created":1234567890,"model":"grok-4.1-fast","choices":[{"delta":{"role":"assistant","content":""},"finish_reason":null,"index":0}],"usage":null}\n\n' +
+              'data: {"id":"chatcmpl-stream","object":"chat.completion.chunk","created":1234567890,"model":"grok-4.1-fast","choices":[{"delta":{"content":"OK"},"finish_reason":null,"index":0}],"usage":null}\n\n' +
+              'data: {"id":"chatcmpl-stream","object":"chat.completion.chunk","created":1234567890,"model":"grok-4.1-fast","choices":[{"delta":{},"finish_reason":"stop","index":0}],"usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}}\n\n' +
+              "data: [DONE]\n"
+          ),
+      });
+
+      const result = await client.chatCompletion({
+        model: "grok-4.1-fast",
+        messages: [{ role: "user", content: "Reply with exactly OK" }],
+      });
+
+      expect(result.model).toBe("grok-4.1-fast");
+      expect(result.choices[0].message.role).toBe("assistant");
+      expect(result.choices[0].message.content).toBe("OK");
+      expect(result.choices[0].finish_reason).toBe("stop");
+      expect(result.usage.total_tokens).toBe(2);
+    });
   });
 
   describe("getDeferredCompletion", () => {

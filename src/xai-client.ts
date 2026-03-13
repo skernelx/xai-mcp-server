@@ -15,6 +15,81 @@ function normalizeBaseUrl(baseUrl?: string): string {
   return baseUrl.trim().replace(/\/+$/, "");
 }
 
+function parseStreamedChatCompletion(raw: string): ChatCompletionResponse {
+  const chunks = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice(5).trim())
+    .filter((payload) => payload && payload !== "[DONE]")
+    .map((payload) => JSON.parse(payload));
+
+  if (chunks.length === 0) {
+    throw new Error("xAI API returned an empty event stream");
+  }
+
+  let id = "chatcmpl-stream";
+  let created = Math.floor(Date.now() / 1000);
+  let model = "";
+  let role = "assistant";
+  let content = "";
+  let finishReason = "stop";
+  let usage = {
+    prompt_tokens: 0,
+    completion_tokens: 0,
+    total_tokens: 0,
+  };
+
+  for (const chunk of chunks) {
+    if (chunk.id) {
+      id = chunk.id;
+    }
+    if (typeof chunk.created === "number") {
+      created = chunk.created;
+    }
+    if (chunk.model) {
+      model = chunk.model;
+    }
+
+    const choice = chunk.choices?.[0];
+    if (choice?.delta?.role) {
+      role = choice.delta.role;
+    }
+    if (typeof choice?.delta?.content === "string") {
+      content += choice.delta.content;
+    }
+    if (choice?.finish_reason) {
+      finishReason = choice.finish_reason;
+    }
+
+    if (chunk.usage) {
+      usage = {
+        prompt_tokens: chunk.usage.prompt_tokens || 0,
+        completion_tokens: chunk.usage.completion_tokens || 0,
+        total_tokens: chunk.usage.total_tokens || 0,
+      };
+    }
+  }
+
+  return {
+    id,
+    object: "chat.completion",
+    created,
+    model,
+    choices: [
+      {
+        index: 0,
+        message: {
+          role,
+          content,
+        },
+        finish_reason: finishReason,
+      },
+    ],
+    usage,
+  };
+}
+
 // ============ Types ============
 
 export interface XAIConfig {
@@ -324,6 +399,23 @@ export class XAIClient {
           }
 
           throw new Error(`xAI API error (${status}): ${error}`);
+        }
+
+        const contentType =
+          typeof response.headers?.get === "function"
+            ? response.headers.get("content-type") || ""
+            : "";
+
+        if (contentType.includes("text/event-stream")) {
+          const raw = await response.text();
+
+          if (endpoint === "/chat/completions") {
+            return parseStreamedChatCompletion(raw) as T;
+          }
+
+          throw new Error(
+            `xAI API returned unsupported event stream response for ${endpoint}`
+          );
         }
 
         return response.json() as Promise<T>;
