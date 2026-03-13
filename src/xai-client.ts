@@ -5,6 +5,7 @@
  */
 
 const DEFAULT_XAI_BASE_URL = "https://api.x.ai/v1";
+const DEFAULT_SEARCH_MODEL = "grok-4-0709";
 
 function normalizeBaseUrl(baseUrl?: string): string {
   if (!baseUrl || !baseUrl.trim()) {
@@ -190,6 +191,7 @@ export interface VideoStatusResponse {
 // Search types
 export interface SearchRequest {
   query: string;
+  model?: string;
   sources?: ("web" | "x")[];
   web_filters?: WebSearchFilters;
   x_filters?: XSearchFilters;
@@ -429,6 +431,11 @@ export class XAIClient {
   async liveSearch(request: SearchRequest): Promise<SearchResponse> {
     const tools: SearchTool[] = [];
     const sources = request.sources || ["web"];
+    const model =
+      request.model ||
+      process.env.XAI_SEARCH_MODEL ||
+      process.env.XAI_MODEL ||
+      DEFAULT_SEARCH_MODEL;
 
     // Build tools array based on requested sources
     if (sources.includes("web")) {
@@ -450,7 +457,7 @@ export class XAIClient {
     // Build the request
     // Note: Server-side tools require grok-4 family models
     const responsesRequest: ResponsesRequest = {
-      model: "grok-4-0709", // Required for server-side tools
+      model,
       input: [
         {
           role: "user",

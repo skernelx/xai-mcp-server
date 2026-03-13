@@ -85,6 +85,18 @@ claude mcp add xai \
   -- $(which node) ~/.xai-mcp-server/dist/index.js
 ```
 
+If you want chat and live search to default to a specific text model, also set
+`XAI_MODEL`. For finer control, `XAI_CHAT_MODEL` and `XAI_SEARCH_MODEL` are
+also supported and take precedence over `XAI_MODEL`.
+
+```bash
+claude mcp add xai \
+  -e XAI_API_KEY=xai-your-key-here \
+  -e XAI_BASE_URL=https://your-gateway.example/v1 \
+  -e XAI_MODEL=grok-4.1-fast \
+  -- $(which node) ~/.xai-mcp-server/dist/index.js
+```
+
 Verify it's configured:
 
 ```bash
@@ -271,7 +283,7 @@ npm run test:watch
 # Run tests with coverage report
 npm run test:coverage
 
-# Run integration tests (requires XAI_API_KEY, optionally uses XAI_BASE_URL)
+# Run integration tests (requires XAI_API_KEY, optionally uses XAI_BASE_URL / XAI_MODEL)
 npm run test:integration
 ```
 
@@ -319,6 +331,18 @@ claude mcp remove xai
 claude mcp add xai \
   -e XAI_API_KEY=xai-your-key-here \
   -e XAI_BASE_URL=https://your-gateway.example/v1 \
+  -- $(which node) ~/.xai-mcp-server/dist/index.js
+```
+
+If you want a custom default text model for chat and live search, also pass
+`XAI_MODEL`:
+
+```bash
+claude mcp remove xai
+claude mcp add xai \
+  -e XAI_API_KEY=xai-your-key-here \
+  -e XAI_BASE_URL=https://your-gateway.example/v1 \
+  -e XAI_MODEL=grok-4.1-fast \
   -- $(which node) ~/.xai-mcp-server/dist/index.js
 ```
 

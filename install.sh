@@ -107,6 +107,18 @@ else
     BASE_URL=""
 fi
 
+echo ""
+echo -e "${BLUE}Optional Default Text Model${NC}"
+echo "Used for chat and live search when you do not pass a model explicitly."
+echo "Example: grok-4.1-fast"
+echo ""
+
+if [ -t 0 ]; then
+    read -p "Enter default XAI_MODEL (or press Enter to use built-in defaults): " MODEL_NAME
+else
+    MODEL_NAME=""
+fi
+
 # Configure Claude Code MCP server
 echo ""
 echo -e "${YELLOW}→${NC} Configuring Claude Code MCP server..."
@@ -118,6 +130,9 @@ claude mcp remove xai 2>/dev/null || true
 MCP_ENV_ARGS=(-e "XAI_API_KEY=$API_KEY")
 if [ -n "$BASE_URL" ]; then
     MCP_ENV_ARGS+=(-e "XAI_BASE_URL=$BASE_URL")
+fi
+if [ -n "$MODEL_NAME" ]; then
+    MCP_ENV_ARGS+=(-e "XAI_MODEL=$MODEL_NAME")
 fi
 
 claude mcp add xai "${MCP_ENV_ARGS[@]}" -- "$NODE_PATH" "$INSTALL_DIR/dist/index.js"
@@ -149,9 +164,17 @@ if [ "$API_KEY" = "xai-your-api-key-here" ]; then
     echo -e "${YELLOW}Remember to update your API key:${NC}"
     echo "  claude mcp remove xai"
     if [ -n "$BASE_URL" ]; then
-        echo "  claude mcp add xai -e XAI_API_KEY=your-key -e XAI_BASE_URL=$BASE_URL -- $NODE_PATH $INSTALL_DIR/dist/index.js"
+        if [ -n "$MODEL_NAME" ]; then
+            echo "  claude mcp add xai -e XAI_API_KEY=your-key -e XAI_BASE_URL=$BASE_URL -e XAI_MODEL=$MODEL_NAME -- $NODE_PATH $INSTALL_DIR/dist/index.js"
+        else
+            echo "  claude mcp add xai -e XAI_API_KEY=your-key -e XAI_BASE_URL=$BASE_URL -- $NODE_PATH $INSTALL_DIR/dist/index.js"
+        fi
     else
-        echo "  claude mcp add xai -e XAI_API_KEY=your-key -- $NODE_PATH $INSTALL_DIR/dist/index.js"
+        if [ -n "$MODEL_NAME" ]; then
+            echo "  claude mcp add xai -e XAI_API_KEY=your-key -e XAI_MODEL=$MODEL_NAME -- $NODE_PATH $INSTALL_DIR/dist/index.js"
+        else
+            echo "  claude mcp add xai -e XAI_API_KEY=your-key -- $NODE_PATH $INSTALL_DIR/dist/index.js"
+        fi
     fi
     echo ""
 fi

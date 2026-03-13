@@ -506,6 +506,30 @@ describe("XAIClient", () => {
       expect(result.citations).toHaveLength(2);
     });
 
+    it("should use XAI_MODEL for live search when no explicit model is provided", async () => {
+      process.env.XAI_MODEL = "grok-4.1-fast";
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            id: "resp-456",
+            output: [{ role: "assistant", content: "Search results..." }],
+            citations: [],
+          }),
+      });
+
+      await client.liveSearch({
+        query: "latest AI news",
+        sources: ["web"],
+      });
+
+      const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(callBody.model).toBe("grok-4.1-fast");
+
+      delete process.env.XAI_MODEL;
+    });
+
     it("should perform X search with filters", async () => {
       const mockResponse = {
         id: "resp-123",

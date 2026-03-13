@@ -113,6 +113,25 @@ describe("Tool Handlers", () => {
 
       expect(parsed.response).toBe("No response");
     });
+
+    it("should use XAI_MODEL when model is omitted", async () => {
+      process.env.XAI_MODEL = "grok-4.1-fast";
+      mockClient.chatCompletion.mockResolvedValueOnce({
+        model: "grok-4.1-fast",
+        choices: [{ index: 0, message: { content: "Configured model" }, finish_reason: "stop" }],
+        usage: { prompt_tokens: 6, completion_tokens: 4, total_tokens: 10 },
+      });
+
+      await handleChat({ message: "Hi" });
+
+      expect(mockClient.chatCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: "grok-4.1-fast",
+        })
+      );
+
+      delete process.env.XAI_MODEL;
+    });
   });
 
   describe("chatSchema validation", () => {
@@ -124,7 +143,7 @@ describe("Tool Handlers", () => {
     it("should apply defaults", () => {
       const input = { message: "Hello" };
       const parsed = chatSchema.parse(input);
-      expect(parsed.model).toBe("grok-3");
+      expect(parsed.model).toBeUndefined();
       expect(parsed.temperature).toBe(0.7);
     });
 
