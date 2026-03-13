@@ -14,8 +14,7 @@ export const chatSchema = z.object({
   model: z
     .string()
     .optional()
-    .default("grok-3")
-    .describe("Chat model: grok-4, grok-3, grok-3-mini, grok-3-fast"),
+    .describe("Chat model. Defaults to XAI_CHAT_MODEL or XAI_MODEL if configured"),
   system_prompt: z
     .string()
     .optional()
@@ -67,8 +66,7 @@ export const chatTool = {
       },
       model: {
         type: "string",
-        description: "Chat model: grok-4, grok-3, grok-3-mini, grok-3-fast",
-        default: "grok-3",
+        description: "Chat model. Defaults to XAI_CHAT_MODEL or XAI_MODEL if configured",
       },
       system_prompt: {
         type: "string",
@@ -103,6 +101,11 @@ export const chatTool = {
 export async function handleChat(input: ChatInput): Promise<string> {
   const client = getXAIClient();
   const validated = chatSchema.parse(input);
+  const model =
+    validated.model ||
+    process.env.XAI_CHAT_MODEL ||
+    process.env.XAI_MODEL ||
+    "grok-3";
 
   const messages: ChatMessage[] = [];
 
@@ -114,7 +117,7 @@ export async function handleChat(input: ChatInput): Promise<string> {
   messages.push({ role: "user", content: validated.message });
 
   const response = await client.chatCompletion({
-    model: validated.model,
+    model,
     messages,
     temperature: validated.temperature,
     max_tokens: validated.max_tokens,

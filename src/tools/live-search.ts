@@ -71,6 +71,10 @@ export const liveSearchSchema = z.object({
   query: z
     .string()
     .describe("Search query"),
+  model: z
+    .string()
+    .optional()
+    .describe("Optional search model. Defaults to XAI_SEARCH_MODEL or XAI_MODEL if configured"),
   sources: z
     .array(z.enum(["web", "x"]))
     .optional()
@@ -103,6 +107,10 @@ export const liveSearchTool = {
       query: {
         type: "string",
         description: "Search query",
+      },
+      model: {
+        type: "string",
+        description: "Optional search model. Defaults to XAI_SEARCH_MODEL or XAI_MODEL if configured",
       },
       sources: {
         type: "array",
@@ -236,6 +244,7 @@ export async function handleLiveSearch(
 
   const response = await client.liveSearch({
     query: augmentedQuery,
+    model: validated.model,
     sources: validated.sources,
     web_filters: webFilters,
     x_filters: xFilters,
@@ -245,6 +254,7 @@ export async function handleLiveSearch(
     {
       success: true,
       query: validated.query,
+      model: validated.model || process.env.XAI_SEARCH_MODEL || process.env.XAI_MODEL || "grok-4-0709",
       sources: validated.sources,
       content: response.content,
       citations: response.citations || [],

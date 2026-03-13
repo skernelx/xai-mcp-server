@@ -40,6 +40,25 @@ describe("XAIClient", () => {
       });
       expect(c).toBeInstanceOf(XAIClient);
     });
+
+    it("should normalize trailing slash in custom base URL", async () => {
+      const c = createTestClient({
+        apiKey: "test",
+        baseUrl: "https://custom.api.com/",
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ object: "list", data: [] }),
+      });
+
+      await c.listModels();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://custom.api.com/models",
+        expect.anything()
+      );
+    });
   });
 
   describe("getXAIClient", () => {
@@ -65,6 +84,29 @@ describe("XAIClient", () => {
       expect(client1).toBe(client2);
 
       delete process.env.XAI_API_KEY;
+      resetClientInstance();
+    });
+
+    it("should use XAI_BASE_URL from environment", async () => {
+      process.env.XAI_API_KEY = "test-key";
+      process.env.XAI_BASE_URL = "https://gateway.example.com/v1/";
+      resetClientInstance();
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ object: "list", data: [] }),
+      });
+
+      const singleton = getXAIClient();
+      await singleton.listModels();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://gateway.example.com/v1/models",
+        expect.anything()
+      );
+
+      delete process.env.XAI_API_KEY;
+      delete process.env.XAI_BASE_URL;
       resetClientInstance();
     });
   });
@@ -462,6 +504,30 @@ describe("XAIClient", () => {
       expect(callBody.model).toBe("grok-4-0709");
       expect(result.content).toContain("silver prices");
       expect(result.citations).toHaveLength(2);
+    });
+
+    it("should use XAI_MODEL for live search when no explicit model is provided", async () => {
+      process.env.XAI_MODEL = "grok-4.1-fast";
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            id: "resp-456",
+            output: [{ role: "assistant", content: "Search results..." }],
+            citations: [],
+          }),
+      });
+
+      await client.liveSearch({
+        query: "latest AI news",
+        sources: ["web"],
+      });
+
+      const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(callBody.model).toBe("grok-4.1-fast");
+
+      delete process.env.XAI_MODEL;
     });
 
     it("should perform X search with filters", async () => {

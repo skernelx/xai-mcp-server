@@ -1,6 +1,7 @@
 /**
  * Integration tests for xAI MCP Server
  * Requires XAI_API_KEY environment variable to be set
+ * Optionally honors XAI_BASE_URL for custom xAI-compatible gateways
  * Run with: npm run test:integration
  */
 
@@ -9,6 +10,7 @@ import { XAIClient, createTestClient } from "../src/xai-client.js";
 
 // Skip tests if no API key
 const XAI_API_KEY = process.env.XAI_API_KEY;
+const XAI_BASE_URL = process.env.XAI_BASE_URL;
 const describeIntegration = XAI_API_KEY ? describe : describe.skip;
 
 describeIntegration("xAI API Integration Tests", () => {
@@ -18,7 +20,7 @@ describeIntegration("xAI API Integration Tests", () => {
     if (!XAI_API_KEY) {
       throw new Error("XAI_API_KEY environment variable is required for integration tests");
     }
-    client = createTestClient({ apiKey: XAI_API_KEY });
+    client = createTestClient({ apiKey: XAI_API_KEY, baseUrl: XAI_BASE_URL });
   });
 
   describe("Models API", () => {
