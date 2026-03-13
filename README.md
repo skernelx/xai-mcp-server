@@ -75,6 +75,16 @@ claude mcp add xai -e XAI_API_KEY=xai-your-key-here -- node ~/.xai-mcp-server/di
 claude mcp add xai -e XAI_API_KEY=xai-your-key-here -- $(which node) ~/.xai-mcp-server/dist/index.js
 ```
 
+If you use a custom xAI-compatible gateway or proxy, also pass `XAI_BASE_URL`
+with the full `/v1` base URL:
+
+```bash
+claude mcp add xai \
+  -e XAI_API_KEY=xai-your-key-here \
+  -e XAI_BASE_URL=https://your-gateway.example/v1 \
+  -- $(which node) ~/.xai-mcp-server/dist/index.js
+```
+
 Verify it's configured:
 
 ```bash
@@ -261,7 +271,7 @@ npm run test:watch
 # Run tests with coverage report
 npm run test:coverage
 
-# Run integration tests (requires XAI_API_KEY, makes real API calls)
+# Run integration tests (requires XAI_API_KEY, optionally uses XAI_BASE_URL)
 npm run test:integration
 ```
 
@@ -300,6 +310,16 @@ Re-add the MCP server with your API key:
 ```bash
 claude mcp remove xai
 claude mcp add xai -e XAI_API_KEY=xai-your-key-here -- $(which node) ~/.xai-mcp-server/dist/index.js
+```
+
+If you're using a custom gateway, re-add it with `XAI_BASE_URL` too:
+
+```bash
+claude mcp remove xai
+claude mcp add xai \
+  -e XAI_API_KEY=xai-your-key-here \
+  -e XAI_BASE_URL=https://your-gateway.example/v1 \
+  -- $(which node) ~/.xai-mcp-server/dist/index.js
 ```
 
 ### Tools not appearing in Claude Code

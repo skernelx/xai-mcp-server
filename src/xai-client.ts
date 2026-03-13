@@ -4,7 +4,15 @@
  * Based on xAI API documentation: https://docs.x.ai/docs/api-reference
  */
 
-const XAI_BASE_URL = "https://api.x.ai/v1";
+const DEFAULT_XAI_BASE_URL = "https://api.x.ai/v1";
+
+function normalizeBaseUrl(baseUrl?: string): string {
+  if (!baseUrl || !baseUrl.trim()) {
+    return DEFAULT_XAI_BASE_URL;
+  }
+
+  return baseUrl.trim().replace(/\/+$/, "");
+}
 
 // ============ Types ============
 
@@ -279,7 +287,7 @@ export class XAIClient {
 
   constructor(config: XAIConfig) {
     this.apiKey = config.apiKey;
-    this.baseUrl = config.baseUrl || XAI_BASE_URL;
+    this.baseUrl = normalizeBaseUrl(config.baseUrl);
   }
 
   private async request<T>(
@@ -558,6 +566,7 @@ let clientInstance: XAIClient | null = null;
 export function getXAIClient(): XAIClient {
   if (!clientInstance) {
     const apiKey = process.env.XAI_API_KEY;
+    const baseUrl = process.env.XAI_BASE_URL;
     if (!apiKey) {
       throw new Error(
         "XAI_API_KEY is not configured.\n\n" +
@@ -565,14 +574,16 @@ export function getXAIClient(): XAIClient {
           '  "xai": {\n' +
           '    "command": "xai-mcp-server",\n' +
           '    "env": {\n' +
-          '      "XAI_API_KEY": "your-api-key-here"\n' +
+          '      "XAI_API_KEY": "your-api-key-here",\n' +
+          '      "XAI_BASE_URL": "https://your-gateway.example/v1"\n' +
           "    }\n" +
           "  }\n\n" +
+          "XAI_BASE_URL is optional and only needed when you use a custom xAI-compatible gateway.\n\n" +
           "Get your API key at: https://console.x.ai/\n" +
           "Then restart Claude Code."
       );
     }
-    clientInstance = new XAIClient({ apiKey });
+    clientInstance = new XAIClient({ apiKey, baseUrl });
   }
   return clientInstance;
 }

@@ -4,7 +4,7 @@ set -e
 # xAI MCP Server Installer
 # Installs the xAI MCP server and configures Claude Code
 
-REPO="joemccann/xai-mcp-server"
+REPO="${XAI_MCP_REPO:-skernelx/xai-mcp-server}"
 INSTALL_DIR="$HOME/.xai-mcp-server"
 
 # Colors
@@ -94,6 +94,19 @@ if [ -z "$API_KEY" ]; then
     echo -e "${YELLOW}⚠${NC}  Skipped. You'll need to add your API key later."
 fi
 
+# Get optional custom base URL
+echo ""
+echo -e "${BLUE}Optional Custom Gateway${NC}"
+echo "If you use an xAI-compatible proxy or gateway, enter its full /v1 base URL."
+echo "Example: https://your-gateway.example/v1"
+echo ""
+
+if [ -t 0 ]; then
+    read -p "Enter custom XAI_BASE_URL (or press Enter to use official xAI API): " BASE_URL
+else
+    BASE_URL=""
+fi
+
 # Configure Claude Code MCP server
 echo ""
 echo -e "${YELLOW}→${NC} Configuring Claude Code MCP server..."
@@ -102,7 +115,12 @@ echo -e "${YELLOW}→${NC} Configuring Claude Code MCP server..."
 claude mcp remove xai 2>/dev/null || true
 
 # Add the MCP server using the CLI
-claude mcp add xai -e "XAI_API_KEY=$API_KEY" -- "$NODE_PATH" "$INSTALL_DIR/dist/index.js"
+MCP_ENV_ARGS=(-e "XAI_API_KEY=$API_KEY")
+if [ -n "$BASE_URL" ]; then
+    MCP_ENV_ARGS+=(-e "XAI_BASE_URL=$BASE_URL")
+fi
+
+claude mcp add xai "${MCP_ENV_ARGS[@]}" -- "$NODE_PATH" "$INSTALL_DIR/dist/index.js"
 
 echo -e "${GREEN}✓${NC} MCP server configured"
 
@@ -130,6 +148,10 @@ echo ""
 if [ "$API_KEY" = "xai-your-api-key-here" ]; then
     echo -e "${YELLOW}Remember to update your API key:${NC}"
     echo "  claude mcp remove xai"
-    echo "  claude mcp add xai -e XAI_API_KEY=your-key -- $NODE_PATH $INSTALL_DIR/dist/index.js"
+    if [ -n "$BASE_URL" ]; then
+        echo "  claude mcp add xai -e XAI_API_KEY=your-key -e XAI_BASE_URL=$BASE_URL -- $NODE_PATH $INSTALL_DIR/dist/index.js"
+    else
+        echo "  claude mcp add xai -e XAI_API_KEY=your-key -- $NODE_PATH $INSTALL_DIR/dist/index.js"
+    fi
     echo ""
 fi
